@@ -20,4 +20,4 @@ truffle migrate --reset --network develop
 
 Check out a live running version deployed to ropsten at:
 
-https://diegosanchezmarino.github.io/InstaDapp/
+https://diegosanchezmarino.github.io/decentralized-instagram/
