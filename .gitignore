@@ -7,9 +7,12 @@ node_modules/
 node_modules
 ./reactApp/node_modules
 
+
 #abis
 abis
 abis/
+artifacts
+cache
 build/
 ./secrets.js
 package-lock.json

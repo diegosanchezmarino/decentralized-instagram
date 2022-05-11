@@ -11,7 +11,6 @@ class AddDescriptionView extends Component {
         this.description = event.target.value
     }
 
-
     render() {
         return (
             <StyledAddDescriptionView>

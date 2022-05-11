@@ -1,21 +1,35 @@
-const { assert } = require('chai')
-const { default: Web3 } = require('web3')
-
-const Decentragram = artifacts.require('./Decentragram.sol')
+const { assert } = require('chai');
+const { ethers } = require('hardhat');
+const { BigNumber } = require("ethers");
+const { result } = require('underscore');
 
 require('chai')
   .use(require('chai-as-promised'))
   .should()
 
-contract('Decentragram', ([deployer, author, tipper]) => {
-  let decentragram
+describe("Decentragram contract", function () {
 
-  before(async () => {
-    decentragram = await Decentragram.deployed()
+
+  var tipper, user;
+
+  var Decentragram, decentragram;
+
+  before(async function () {
+    signers = await ethers.getSigners()
+    tipper = signers[0]
+    user = signers[1]
+
+    Decentragram = await ethers.getContractFactory("Decentragram")
   })
 
 
   describe('Deployment', async () => {
+
+    before(async function () {
+      decentragram = await Decentragram.deploy();
+      await decentragram.deployed()
+    })
+
     it('deploys successfully', async () => {
       const address = await decentragram.address
       assert.notEqual(address, 0x0)
@@ -31,77 +45,104 @@ contract('Decentragram', ([deployer, author, tipper]) => {
   })
 
 
-  describe('Post', async () => {
-    let result, postCount
+  describe('createPost', async () => {
+    let result, startingPostCount
     const hash = 'abc123';
     const postDescription = "Image post description"
     const tipAmount = 0
 
     before(async () => {
-      result = await decentragram.createPost(hash, postDescription, { from: author });
-      postCount = await decentragram.postCount();
+      decentragram = await Decentragram.deploy();
+      await decentragram.deployed()
+      startingPostCount = await decentragram.postCount();
+      result = await decentragram.connect(user).createPost(hash, postDescription);
     })
 
-    it('create post', async () => {
-      assert.equal(postCount, 1);
-      const event = result.logs[0].args
-      assert.equal(event.id.toNumber(), postCount.toNumber(), 'id is incorrect');
-      assert.equal(event.hash, hash, 'Hash is incorrect');
-      assert.equal(event.description, postDescription, 'Description is incorrect');
-      assert.equal(event.tipAmount, tipAmount, 'tip amount is incorrect');
-      assert.equal(event.author, author, 'author is incorrect');
-
-      await decentragram.createPost('', postDescription, { from: author }).should.be.rejected;
-      await decentragram.createPost(hash, '', { from: author }).should.be.rejected;
-
-      await decentragram.createPost('', '', { from: author }).should.be.rejected;
-      await decentragram.createPost(hash, '', '', { from: author }).should.be.rejected;
-      await decentragram.createPost('', postDescription, '', { from: author }).should.be.rejected;
+    it('should increase post count', async () => {
+      newPostCount = await decentragram.postCount();
+      assert.equal(newPostCount,startingPostCount.toNumber() + 1)
+    })
 
 
-      await decentragram.createPost('', '', '', { from: author }).should.be.rejected;
+    it('should emit event', async () => {
+
+      // let receipt = await result.wait();
+      // console.log(receipt.events[0].args)
+
+      await expect(result)
+        .to.emit(decentragram, "PostCreated")
+        .withArgs("1", hash, postDescription, user.address)
 
     })
 
-    it('list posts', async () => {
-      assert.equal(postCount, 1);
-      const post = await decentragram.posts(postCount);
-      assert.equal(post.id.toNumber(), postCount.toNumber(), 'id is incorrect');
+
+    it('should reject empty values', async () => {
+
+      await decentragram.createPost('', postDescription).should.be.rejected;
+      await decentragram.createPost(hash, '').should.be.rejected;
+      await decentragram.createPost('', '').should.be.rejected;
+
+    })
+
+    it('should return data from contract', async () => {
+      const post = await decentragram.posts("1");
+      assert.equal(post.id.toNumber(), 1, 'id is incorrect');
       assert.equal(post.hash, hash, 'Hash is incorrect');
       assert.equal(post.description, postDescription, 'Description is incorrect');
       assert.equal(post.tipAmount, tipAmount, 'tip amount is incorrect');
-      assert.equal(post.author, author, 'author is incorrect');
+      assert.equal(post.author, user.address, 'author is incorrect');
 
     })
 
-    it('allows users to tip posts', async () => {
-      let oldAuthorBalance;
-      oldAuthorBalance = await web3.eth.getBalance(author);
-      oldAuthorBalance = new web3.utils.BN(oldAuthorBalance);
 
-      result = await decentragram.tipPostOwner(postCount, { from: tipper, value: web3.utils.toWei('1', 'Ether') });
+  })
 
-      const event = result.logs[0].args
-      assert.equal(event.id.toNumber(), postCount.toNumber(), 'id is incorrect');
-      assert.equal(event.hash, hash, 'Hash is incorrect');
-      assert.equal(event.description, postDescription, 'Description is incorrect');
-      assert.equal(event.tipAmount, '1000000000000000000', 'tip amount is incorrect');
-      assert.equal(event.author, author, 'author is incorrect');
+  describe('tipPostOwner', async () => {
+
+    let result, postCount
+    const hash = 'abc123';
+    const postDescription = "Image post description"
+
+    let oldAuthorBalance, newAuthorBalance;
+
+    before(async () => {
+      decentragram = await Decentragram.deploy();
+      await decentragram.deployed()
+
+      result = await decentragram.connect(user).createPost(hash, postDescription);
+
+      oldAuthorBalance = await ethers.provider.getBalance(user.address);
+      oldAuthorBalance = BigNumber.from(oldAuthorBalance);
+
+      postCount = await decentragram.postCount();
+      result = await decentragram.connect(tipper).tipPostOwner(postCount, { value: web3.utils.toWei('1', 'Ether') });
+    })
 
 
-      let newAuthorBalance;
-      newAuthorBalance = await web3.eth.getBalance(author);
-      newAuthorBalance = new web3.utils.BN(newAuthorBalance);
+    it('should increae author balance', async () => {
 
-      let tipPostOwner;
-      tipPostOwner = web3.utils.toWei('1', 'Ether');
-      tipPostOwner = new web3.utils.BN(tipPostOwner);
+      await expect(result)
+        .to.emit(decentragram, "PostTipped")
+        .withArgs("1", hash, postDescription, web3.utils.toWei('1', 'Ether'), user.address)
+
+
+      newAuthorBalance = await ethers.provider.getBalance(user.address);
+      newAuthorBalance = BigNumber.from(newAuthorBalance);
+
+
+      let tipPostOwner = web3.utils.toWei('1', 'Ether');
+      tipPostOwner = BigNumber.from(tipPostOwner);
 
       const expectedBalance = oldAuthorBalance.add(tipPostOwner);
 
       assert.equal(newAuthorBalance.toString(), expectedBalance.toString());
 
-      await decentragram.tipPostOwner(99, { from: tipper, value: web3.utils.toWei('1', 'Ether') }).should.be.rejected;
+
+    })
+
+    it('should fail for non existent post', async () => {
+
+      await decentragram.connect(tipper).tipPostOwner(99, { value: web3.utils.toWei('1', 'Ether') }).should.be.rejected;
 
     })
 
@@ -109,5 +150,9 @@ contract('Decentragram', ([deployer, author, tipper]) => {
   })
 
 
+
 })
+
+
+
 

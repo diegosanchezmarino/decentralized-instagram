@@ -8,9 +8,6 @@ const mainContract = new (new Web3(window.ethereum)).eth.Contract(Decentragram.a
 
 
 
-
-
-
 export function getPostTippedSubscriptionEvent() {
     return mainContract.events.PostTipped()
 }

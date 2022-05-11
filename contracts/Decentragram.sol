@@ -17,7 +17,6 @@ contract Decentragram {
         uint256 id,
         string hash,
         string description,
-        uint256 tipAmount,
         address payable author
     );
 
@@ -55,7 +54,6 @@ contract Decentragram {
             postCount,
             _resourceHash,
             _description,
-            0,
             payable(msg.sender)
         );
     }

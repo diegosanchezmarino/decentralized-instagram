@@ -1,4 +1,4 @@
-import { ROPSTEN_PRIVATE_KEY, INFURA_API_KEY } from './secrets'
+// import { ROPSTEN_PRIVATE_KEY, INFURA_API_KEY } from './secrets'
 
 
 
@@ -14,9 +14,9 @@ require("@nomiclabs/hardhat-truffle5");
 module.exports = {
   solidity: "0.8.11",
   networks: {
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/${INFURA_API_KEY}`,
-      accounts: [`${ROPSTEN_PRIVATE_KEY}`]
-    }
+    // ropsten: {
+    //   url: `https://ropsten.infura.io/v3/${INFURA_API_KEY}`,
+    //   accounts: [`${ROPSTEN_PRIVATE_KEY}`]
+    // }
   }
 };
