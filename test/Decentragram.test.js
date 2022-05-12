@@ -23,7 +23,7 @@ describe("Decentragram contract", function () {
   })
 
 
-  describe('Deployment', async () => {
+  describe('deployment', async () => {
 
     before(async function () {
       decentragram = await Decentragram.deploy();
@@ -119,7 +119,7 @@ describe("Decentragram contract", function () {
     })
 
 
-    it('should increae author balance', async () => {
+    it('should increase author balance', async () => {
 
       await expect(result)
         .to.emit(decentragram, "PostTipped")
@@ -145,12 +145,7 @@ describe("Decentragram contract", function () {
       await decentragram.connect(tipper).tipPostOwner(99, { value: web3.utils.toWei('1', 'Ether') }).should.be.rejected;
 
     })
-
-
   })
-
-
-
 })
 
 
